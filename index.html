@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CivicLine — Report a civic issue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  :root{
+    --asphalt: #F4F2EC;
+    --plate: #FFFFFF;
+    --ink: #22262B;
+    --ink-soft: #5B6169;
+    --line: #D8D4C8;
+    --blue: #2B4C7E;
+    --blue-deep: #1D3457;
+    --amber: #E29A32;
+    --amber-deep: #B87A20;
+    --green: #3D8361;
+    --green-deep: #2C6249;
+    --red: #B8473C;
+    --red-deep: #8E362D;
+    --lane: repeating-linear-gradient(90deg, var(--line) 0 18px, transparent 18px 30px);
+  }
+  :root:not([data-theme="light"]){
+    @media (prefers-color-scheme: dark){
+      --asphalt: #191B1E;
+      --plate: #232629;
+      --ink: #EFEDE7;
+      --ink-soft: #A3A9AF;
+      --line: #3A3D41;
+      --blue: #6E93C9;
+      --blue-deep: #9DB7DD;
+      --amber: #E8A93D;
+      --amber-deep: #F0BE66;
+      --green: #5AA57F;
+      --green-deep: #7BC29E;
+      --red: #D3695C;
+      --red-deep: #E08A7F;
+      --lane: repeating-linear-gradient(90deg, var(--line) 0 18px, transparent 18px 30px);
+    }
+  }
+  :root[data-theme="dark"]{
+    --asphalt: #191B1E;
+    --plate: #232629;
+    --ink: #EFEDE7;
+    --ink-soft: #A3A9AF;
+    --line: #3A3D41;
+    --blue: #6E93C9;
+    --blue-deep: #9DB7DD;
+    --amber: #E8A93D;
+    --amber-deep: #F0BE66;
+    --green: #5AA57F;
+    --green-deep: #7BC29E;
+    --red: #D3695C;
+    --red-deep: #E08A7F;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--asphalt);
+    color: var(--ink);
+    font-family: 'Work Sans', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 0.95;
+    margin: 0;
+  }
+  button{ font-family: inherit; cursor: pointer; }
+  input, textarea, select{ font-family: inherit; }
+  ::selection{ background: var(--amber); color: #1a1a1a; }
+
+  .app{ max-width: 1180px; margin: 0 auto; padding: 0 20px 80px; }
+
+  /* Header / sign plate */
+  .headbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 22px 0 18px;
+    border-bottom: 3px solid var(--ink);
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand-mark{
+    width:40px;height:40px; border-radius: 6px;
+    background: var(--blue); color: white;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Big Shoulders Display'; font-size: 22px; font-weight:800;
+    flex-shrink:0;
+  }
+  .brand-text .display{ font-size: 26px; }
+  .brand-text .sub{ font-size: 12px; color: var(--ink-soft); margin-top: 1px; }
+
+  .nav{ display:flex; gap: 4px; background: var(--plate); border:2px solid var(--ink); border-radius: 10px; padding:4px; }
+  .nav button{
+    border:none; background:transparent; padding: 9px 16px; border-radius: 7px;
+    font-size: 14px; font-weight: 600; color: var(--ink-soft);
+  }
+  .nav button.active{ background: var(--ink); color: var(--plate); }
+
+  /* Hero */
+  .hero{
+    display:grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px;
+    padding: 48px 0 40px; border-bottom: 1px solid var(--line);
+    align-items: end;
+  }
+  .hero h1{ font-size: clamp(40px, 6vw, 68px); }
+  .hero p{ max-width: 46ch; color: var(--ink-soft); font-size: 16px; margin-top: 14px; line-height:1.55; }
+  .route-strip{ display:flex; align-items:center; gap:0; margin-top: 26px; }
+  .route-node{ display:flex; flex-direction:column; align-items:center; gap:8px; flex:1; min-width:0;}
+  .route-dot{ width:14px; height:14px; border-radius:50%; background: var(--line); border: 2px solid var(--asphalt); }
+  .route-dot.on{ background: var(--amber); }
+  .route-label{ font-size: 11px; color: var(--ink-soft); text-align:center; }
+  .route-seg{ height:2px; flex:1.4; background: var(--line); margin-top:6px; }
+
+  .hero-side{
+    background: var(--plate); border:2px solid var(--ink); border-radius: 14px;
+    padding: 22px; position:relative;
+  }
+  .hero-side .kicker{ font-size:12px; color: var(--ink-soft); font-weight:600; }
+  .stat-row{ display:flex; gap: 18px; margin-top: 14px; }
+  .stat{ flex:1; }
+  .stat .num{ font-family:'Big Shoulders Display'; font-size: 34px; font-weight:800; }
+  .stat .lbl{ font-size:12px; color: var(--ink-soft); margin-top:2px;}
+
+  /* Section titles */
+  .sec-title{ display:flex; align-items:baseline; gap:12px; margin: 42px 0 20px; }
+  .sec-title h2{ font-size: 26px; }
+  .sec-title .rule{ flex:1; height:2px; background: var(--lane); background-size: 30px 2px; opacity:.9; }
+
+  /* Report form */
+  .form-grid{ display:grid; grid-template-columns: 1.2fr 0.8fr; gap: 28px; }
+  @media (max-width: 860px){ .form-grid{ grid-template-columns: 1fr; } .hero{grid-template-columns:1fr;} }
+
+  .card{
+    background: var(--plate); border: 2px solid var(--ink); border-radius: 14px; padding: 26px;
+  }
+  .field{ margin-bottom: 20px; }
+  .field label{ display:block; font-size: 13px; font-weight:600; margin-bottom: 7px; }
+  .field .hint{ font-size:12px; color:var(--ink-soft); margin-top:5px; }
+  .field input[type=text], .field textarea{
+    width:100%; border: 1.5px solid var(--line); background: var(--asphalt); color: var(--ink);
+    border-radius: 8px; padding: 11px 13px; font-size: 14px; resize: vertical;
+  }
+  .field input:focus, .field textarea:focus{ outline: 2px solid var(--blue); outline-offset:1px; }
+  .field textarea{ min-height: 96px; }
+
+  .chip-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{
+    display:flex; align-items:center; gap:7px;
+    border: 1.5px solid var(--line); background: var(--asphalt); color: var(--ink);
+    border-radius: 20px; padding: 8px 14px; font-size: 13px; font-weight: 500;
+  }
+  .chip svg{ width:15px; height:15px; }
+  .chip.selected{ border-color: var(--amber-deep); background: var(--amber); color:#1a1409; font-weight:700; }
+
+  .upload-box{
+    border: 2px dashed var(--line); border-radius: 10px; padding: 20px;
+    display:flex; align-items:center; gap:14px; cursor:pointer;
+    background: var(--asphalt);
+  }
+  .upload-box:hover{ border-color: var(--blue); }
+  .upload-thumb{ width:64px;height:64px; border-radius:8px; object-fit:cover; border:1px solid var(--line); flex-shrink:0; }
+  .upload-icon{ width:64px;height:64px; border-radius:8px; background: var(--plate); display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid var(--line);}
+
+  .btn{
+    border: none; border-radius: 9px; padding: 13px 22px; font-weight:700; font-size:14px;
+    display:inline-flex; align-items:center; gap:8px;
+  }
+  .btn-primary{ background: var(--ink); color: var(--plate); }
+  .btn-primary:hover{ background: var(--blue-deep); }
+  .btn-primary:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn-ghost{ background:transparent; border: 1.5px solid var(--ink); color:var(--ink); }
+
+  /* preview ticket */
+  .ticket{ position:sticky; top:20px; }
+  .ticket-head{ display:flex; justify-content:space-between; align-items:center; border-bottom: 2px dashed var(--line); padding-bottom:14px; margin-bottom:16px;}
+  .ticket-id{ font-family:'Big Shoulders Display'; font-size:20px; font-weight:800; }
+  .badge{ font-size:11px; font-weight:700; padding: 4px 10px; border-radius: 20px; letter-spacing:.02em; }
+  .badge-amber{ background: rgba(226,154,50,.18); color: var(--amber-deep); }
+  .badge-blue{ background: rgba(43,76,126,.14); color: var(--blue-deep); }
+  .badge-green{ background: rgba(61,131,97,.16); color: var(--green-deep); }
+  .badge-red{ background: rgba(184,71,60,.16); color: var(--red-deep); }
+  .ticket-photo{ width:100%; height:150px; object-fit:cover; border-radius:8px; border:1px solid var(--line); margin-bottom:14px; background: var(--asphalt); }
+  .ticket-row{ display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px solid var(--line); }
+  .ticket-row .k{ color: var(--ink-soft); }
+  .ticket-row .v{ font-weight:600; text-align:right; max-width:60%; }
+  .empty-note{ color:var(--ink-soft); font-size:13px; line-height:1.6; }
+
+  /* My reports */
+  .report-list{ display:flex; flex-direction:column; gap:14px; }
+  .report-card{ background: var(--plate); border:1.5px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+  .report-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
+  .report-title{ font-weight:700; font-size:15px; }
+  .report-meta{ font-size:12px; color: var(--ink-soft); margin-top:3px; }
+  .report-body{ display:flex; gap:14px; margin-top:14px; }
+  .report-thumb{ width:76px; height:76px; border-radius:8px; object-fit:cover; flex-shrink:0; border:1px solid var(--line); }
+  .report-desc{ font-size:13px; color: var(--ink-soft); line-height:1.5; }
+
+  .stepper{ display:flex; align-items:center; margin-top:16px; }
+  .step{ display:flex; flex-direction:column; align-items:center; flex:1; }
+  .step-dot{ width:11px;height:11px;border-radius:50%; background: var(--line); }
+  .step-dot.done{ background: var(--green); }
+  .step-dot.current{ background: var(--amber); box-shadow: 0 0 0 4px rgba(226,154,50,.22); }
+  .step-line{ height:2px; flex:1; background: var(--line); }
+  .step-line.done{ background: var(--green); }
+  .step-lbl{ font-size:10.5px; color: var(--ink-soft); margin-top:6px; text-align:center; }
+
+  .empty-state{
+    border: 2px dashed var(--line); border-radius: 14px; padding: 46px 20px; text-align:center;
+  }
+  .empty-state h3{ font-size:20px; margin-bottom:8px; }
+  .empty-state p{ color:var(--ink-soft); font-size:14px; max-width:40ch; margin:0 auto; }
+
+  /* Admin */
+  .kpi-row{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom: 26px; }
+  .kpi{ flex:1; min-width:130px; background: var(--plate); border-radius:10px; padding:16px 18px; border-bottom: 4px solid var(--line); }
+  .kpi .num{ font-family:'Big Shoulders Display'; font-size:32px; font-weight:800; }
+  .kpi .lbl{ font-size:12.5px; color:var(--ink-soft); margin-top:2px;}
+  .kpi.amber{ border-color: var(--amber); }
+  .kpi.blue{ border-color: var(--blue); }
+  .kpi.green{ border-color: var(--green); }
+  .kpi.red{ border-color: var(--red); }
+
+  .filter-row{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+  .filter-row select{
+    border:1.5px solid var(--line); background: var(--plate); color:var(--ink);
+    border-radius:8px; padding:9px 12px; font-size:13px; font-weight:500;
+  }
+
+  .table-wrap{ overflow-x:auto; border:1.5px solid var(--line); border-radius: 12px; background:var(--plate); }
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; min-width:760px; }
+  th{ text-align:left; padding:13px 16px; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); border-bottom:2px solid var(--ink); font-weight:700;}
+  td{ padding:13px 16px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  tr:last-child td{ border-bottom:none; }
+  .row-thumb{ width:40px;height:40px;border-radius:6px;object-fit:cover; border:1px solid var(--line); }
+  .status-select{ border:1.5px solid var(--line); border-radius:7px; padding:6px 10px; font-size:12.5px; font-weight:600; background: var(--asphalt); color:var(--ink); }
+
+  .foot{ text-align:center; color:var(--ink-soft); font-size:12px; margin-top:60px; padding-top:20px; border-top:1px solid var(--line);}
+
+  @media (prefers-reduced-motion: no-preference){
+    .card, .report-card{ transition: border-color .15s ease; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo } = React;
+
+const CATEGORIES = [
+  { id: "pothole", label: "Pothole", icon: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><ellipse cx="12" cy="13" rx="8" ry="4"/><path d="M4 13c0 2.2 3.6 4 8 4s8-1.8 8-4"/><path d="M4 13V9"/><path d="M20 13V9"/><ellipse cx="12" cy="9" rx="8" ry="4"/></svg>
+  )},
+  { id: "garbage", label: "Garbage", icon: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 7h14l-1.2 13.1a2 2 0 0 1-2 1.9H8.2a2 2 0 0 1-2-1.9L5 7Z"/><path d="M9 7V4h6v3"/><path d="M3 7h18"/></svg>
+  )},
+  { id: "streetlight", label: "Streetlight", icon: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="6" r="3"/><path d="M12 9v11"/><path d="M8 20h8"/></svg>
+  )},
+  { id: "water", label: "Water leak", icon: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11Z"/></svg>
+  )},
+  { id: "other", label: "Other", icon: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16.5" r=".6" fill="currentColor"/></svg>
+  )},
+];
+
+const STATUSES = ["Reported", "Assigned", "In Progress", "Resolved"];
+const WARDS = ["Ward 4 — Lakeview", "Ward 7 — Old Town", "Ward 11 — Riverside", "Ward 14 — Hillcrest"];
+
+const STORE_KEY = "civicline_reports_v1";
+
+function loadReports(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    return raw ? JSON.parse(raw) : seedReports();
+  }catch(e){ return seedReports(); }
+}
+function saveReports(list){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(list)); }catch(e){}
+}
+
+function seedReports(){
+  return [
+    {
+      id: "CL-1042", category: "pothole", title: "Deep pothole near bus stop",
+      description: "Large pothole has formed after the rains, cars are swerving into the cycle lane to avoid it.",
+      ward: WARDS[0], location: "Near Lakeview Bus Stop, 2nd Cross",
+      status: "In Progress", photo: null, reportedAt: daysAgo(6),
+    },
+    {
+      id: "CL-1041", category: "garbage", title: "Overflowing garbage bin",
+      description: "Bin outside the market hasn't been cleared in over a week, waste is spilling onto the footpath.",
+      ward: WARDS[1], location: "Old Town Market, Gate 2",
+      status: "Assigned", photo: null, reportedAt: daysAgo(4),
+    },
+    {
+      id: "CL-1039", category: "streetlight", title: "Streetlight flickering, park entrance",
+      description: "The light at the park entrance flickers all night and goes fully dark after midnight.",
+      ward: WARDS[2], location: "Riverside Park, North Gate",
+      status: "Resolved", photo: null, reportedAt: daysAgo(11),
+    },
+  ];
+}
+function daysAgo(n){ const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString(); }
+function fmtDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { day:"numeric", month:"short", year:"numeric" });
+}
+function statusBadgeClass(status){
+  if(status === "Reported") return "badge-amber";
+  if(status === "Assigned") return "badge-blue";
+  if(status === "In Progress") return "badge-blue";
+  if(status === "Resolved") return "badge-green";
+  return "badge-amber";
+}
+function catMeta(id){ return CATEGORIES.find(c=>c.id===id) || CATEGORIES[4]; }
+
+function downscaleImage(file, maxW=480){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const scale = Math.min(1, maxW / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.75));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function RouteStrip(){
+  return (
+    <div className="route-strip">
+      {STATUSES.map((s, i)=>(
+        <React.Fragment key={s}>
+          <div className="route-node">
+            <div className={"route-dot" + (i===0 ? " on" : "")}></div>
+            <div className="route-label">{s}</div>
+          </div>
+          {i < STATUSES.length-1 && <div className="route-seg"></div>}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+function Stepper({ status }){
+  const idx = STATUSES.indexOf(status);
+  return (
+    <div className="stepper">
+      {STATUSES.map((s,i)=>(
+        <React.Fragment key={s}>
+          <div className="step">
+            <div className={"step-dot" + (i < idx ? " done" : i===idx ? " current" : "")}></div>
+            <div className="step-lbl">{s}</div>
+          </div>
+          {i < STATUSES.length-1 && <div className={"step-line" + (i < idx ? " done" : "")}></div>}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+function ReportForm({ onSubmit }){
+  const [category, setCategory] = useState("pothole");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [ward, setWard] = useState(WARDS[0]);
+  const [photo, setPhoto] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const fileRef = useRef(null);
+
+  const canSubmit = title.trim().length > 2 && location.trim().length > 2 && description.trim().length > 4;
+
+  async function handleFile(e){
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    try{
+      const dataUrl = await downscaleImage(file);
+      setPhoto(dataUrl);
+    }catch(err){ /* ignore */ }
+  }
+
+  function handleSubmit(e){
+    e.preventDefault();
+    if(!canSubmit) return;
+    setSubmitting(true);
+    const report = {
+      id: "CL-" + Math.floor(1000 + Math.random()*8999),
+      category, title: title.trim(), description: description.trim(),
+      location: location.trim(), ward, status: "Reported", photo,
+      reportedAt: new Date().toISOString(),
+    };
+    setTimeout(()=>{
+      onSubmit(report);
+      setTitle(""); setDescription(""); setLocation(""); setPhoto(null); setCategory("pothole");
+      setSubmitting(false);
+      if(fileRef.current) fileRef.current.value = "";
+    }, 350);
+  }
+
+  const preview = {
+    id: title ? "New ticket" : "—",
+    category, title, description, location, ward, photo,
+  };
+
+  return (
+    <div className="form-grid">
+      <form className="card" onSubmit={handleSubmit}>
+        <div className="field">
+          <label>What kind of issue is it?</label>
+          <div className="chip-row">
+            {CATEGORIES.map(c=>(
+              <button type="button" key={c.id}
+                className={"chip" + (category===c.id ? " selected" : "")}
+                onClick={()=>setCategory(c.id)}>
+                {c.icon}{c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="title">Give it a short title</label>
+          <input id="title" type="text" placeholder="e.g. Large pothole outside 12 Elm Street"
+            value={title} onChange={e=>setTitle(e.target.value)} maxLength={80} />
+        </div>
+
+        <div className="field">
+          <label htmlFor="desc">Describe what's wrong</label>
+          <textarea id="desc" placeholder="Add any detail that helps the crew understand the problem and its severity."
+            value={description} onChange={e=>setDescription(e.target.value)} />
+        </div>
+
+        <div className="field">
+          <label htmlFor="loc">Location</label>
+          <input id="loc" type="text" placeholder="Street, landmark or intersection"
+            value={location} onChange={e=>setLocation(e.target.value)} />
+          <div className="hint">Drop a pin from your maps app and paste the address, or describe a nearby landmark.</div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="ward">Ward</label>
+          <select id="ward" value={ward} onChange={e=>setWard(e.target.value)}
+            style={{width:"100%", border:"1.5px solid var(--line)", background:"var(--asphalt)", color:"var(--ink)", borderRadius:"8px", padding:"11px 13px", fontSize:"14px"}}>
+            {WARDS.map(w=> <option key={w} value={w}>{w}</option>)}
+          </select>
+        </div>
+
+        <div className="field">
+          <label>Photo</label>
+          <label className="upload-box" htmlFor="photo-input">
+            {photo
+              ? <img src={photo} className="upload-thumb" alt="Selected issue" />
+              : <div className="upload-icon">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.2"/><path d="M8 6l1.2-2h5.6L16 6"/>
+                  </svg>
+                </div>}
+            <div>
+              <div style={{fontWeight:600, fontSize:"13.5px"}}>{photo ? "Photo attached — tap to change" : "Add a photo"}</div>
+              <div className="hint">A clear photo helps the department triage faster.</div>
+            </div>
+          </label>
+          <input id="photo-input" ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{display:"none"}} />
+        </div>
+
+        <button className="btn btn-primary" type="submit" disabled={!canSubmit || submitting}>
+          {submitting ? "Filing report…" : "Submit report"}
+        </button>
+      </form>
+
+      <div className="ticket card">
+        <div className="ticket-head">
+          <div className="ticket-id">{title ? "Preview" : "New ticket"}</div>
+          <span className={"badge " + statusBadgeClass("Reported")}>Draft</span>
+        </div>
+        {photo
+          ? <img src={photo} className="ticket-photo" alt="" />
+          : <div className="ticket-photo" style={{display:"flex",alignItems:"center",justifyContent:"center",color:"var(--ink-soft)",fontSize:"12.5px"}}>No photo yet</div>}
+        <div className="ticket-row"><span className="k">Category</span><span className="v">{catMeta(category).label}</span></div>
+        <div className="ticket-row"><span className="k">Title</span><span className="v">{title || "—"}</span></div>
+        <div className="ticket-row"><span className="k">Ward</span><span className="v">{ward}</span></div>
+        <div className="ticket-row"><span className="k">Location</span><span className="v">{location || "—"}</span></div>
+        <p className="empty-note" style={{marginTop:14}}>
+          This is exactly what the department will see once you submit — check it over before filing.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MyReports({ reports }){
+  if(reports.length === 0){
+    return (
+      <div className="empty-state">
+        <h3>No reports yet</h3>
+        <p>Issues you file will show up here so you can follow them from "Reported" through to "Resolved."</p>
+      </div>
+    );
+  }
+  const sorted = [...reports].sort((a,b)=> new Date(b.reportedAt) - new Date(a.reportedAt));
+  return (
+    <div className="report-list">
+      {sorted.map(r=>(
+        <div className="report-card" key={r.id}>
+          <div className="report-top">
+            <div>
+              <div className="report-title">{r.title}</div>
+              <div className="report-meta">{r.id} · {r.ward} · filed {fmtDate(r.reportedAt)}</div>
+            </div>
+            <span className={"badge " + statusBadgeClass(r.status)}>{r.status}</span>
+          </div>
+          <div className="report-body">
+            {r.photo
+              ? <img src={r.photo} className="report-thumb" alt="" />
+              : <div className="report-thumb" style={{background:"var(--asphalt)", display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ink-soft)"}}>{catMeta(r.category).icon}</div>}
+            <div className="report-desc">
+              <div style={{marginBottom:4}}>{r.description}</div>
+              <div style={{color:"var(--ink-soft)", fontSize:"12px"}}>📍 {r.location}</div>
+            </div>
+          </div>
+          <Stepper status={r.status} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AdminDashboard({ reports, onUpdateStatus }){
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [catFilter, setCatFilter] = useState("all");
+  const [wardFilter, setWardFilter] = useState("all");
+
+  const counts = useMemo(()=>{
+    const c = { total: reports.length, Reported:0, "In Progress":0, Resolved:0 };
+    reports.forEach(r=>{
+      if(r.status === "Reported") c.Reported++;
+      else if(r.status === "Resolved") c.Resolved++;
+      else c["In Progress"]++;
+    });
+    return c;
+  }, [reports]);
+
+  const filtered = reports.filter(r=>
+    (statusFilter === "all" || r.status === statusFilter) &&
+    (catFilter === "all" || r.category === catFilter) &&
+    (wardFilter === "all" || r.ward === wardFilter)
+  ).sort((a,b)=> new Date(b.reportedAt) - new Date(a.reportedAt));
+
+  return (
+    <div>
+      <div className="kpi-row">
+        <div className="kpi amber"><div className="num">{counts.total}</div><div className="lbl">Total reports</div></div>
+        <div className="kpi blue"><div className="num">{counts.Reported}</div><div className="lbl">Awaiting assignment</div></div>
+        <div className="kpi red"><div className="num">{counts["In Progress"]}</div><div className="lbl">Assigned / in progress</div></div>
+        <div className="kpi green"><div className="num">{counts.Resolved}</div><div className="lbl">Resolved</div></div>
+      </div>
+
+      <div className="filter-row">
+        <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}>
+          <option value="all">All statuses</option>
+          {STATUSES.map(s=> <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select value={catFilter} onChange={e=>setCatFilter(e.target.value)}>
+          <option value="all">All categories</option>
+          {CATEGORIES.map(c=> <option key={c.id} value={c.id}>{c.label}</option>)}
+        </select>
+        <select value={wardFilter} onChange={e=>setWardFilter(e.target.value)}>
+          <option value="all">All wards</option>
+          {WARDS.map(w=> <option key={w} value={w}>{w}</option>)}
+        </select>
+      </div>
+
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th></th><th>Ticket</th><th>Category</th><th>Ward</th><th>Filed</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 && (
+              <tr><td colSpan="6" style={{textAlign:"center", padding:"36px", color:"var(--ink-soft)"}}>No reports match these filters.</td></tr>
+            )}
+            {filtered.map(r=>(
+              <tr key={r.id}>
+                <td>
+                  {r.photo
+                    ? <img src={r.photo} className="row-thumb" alt="" />
+                    : <div className="row-thumb" style={{background:"var(--asphalt)", display:"flex",alignItems:"center",justifyContent:"center",color:"var(--ink-soft)"}}>{catMeta(r.category).icon}</div>}
+                </td>
+                <td>
+                  <div style={{fontWeight:700}}>{r.title}</div>
+                  <div style={{color:"var(--ink-soft)", fontSize:"12px"}}>{r.id} · {r.location}</div>
+                </td>
+                <td>{catMeta(r.category).label}</td>
+                <td>{r.ward.split(" — ")[0]}</td>
+                <td>{fmtDate(r.reportedAt)}</td>
+                <td>
+                  <select className="status-select" value={r.status} onChange={e=>onUpdateStatus(r.id, e.target.value)}>
+                    {STATUSES.map(s=> <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function App(){
+  const [tab, setTab] = useState("report");
+  const [reports, setReports] = useState(()=>loadReports());
+
+  useEffect(()=>{ saveReports(reports); }, [reports]);
+
+  function handleSubmit(report){
+    setReports(prev=>[report, ...prev]);
+    setTab("mine");
+  }
+  function handleUpdateStatus(id, status){
+    setReports(prev=> prev.map(r=> r.id===id ? {...r, status} : r));
+  }
+
+  const resolvedCount = reports.filter(r=>r.status==="Resolved").length;
+
+  return (
+    <div className="app">
+      <div className="headbar">
+        <div className="brand">
+          <div className="brand-mark">C</div>
+          <div className="brand-text">
+            <div className="display">CivicLine</div>
+            <div className="sub">Report it. Track it. Fixed.</div>
+          </div>
+        </div>
+        <div className="nav">
+          <button className={tab==="report" ? "active" : ""} onClick={()=>setTab("report")}>Report</button>
+          <button className={tab==="mine" ? "active" : ""} onClick={()=>setTab("mine")}>My reports</button>
+          <button className={tab==="admin" ? "active" : ""} onClick={()=>setTab("admin")}>Admin</button>
+        </div>
+      </div>
+
+      {tab === "report" && (
+        <>
+          <div className="hero">
+            <div>
+              <h1>Broken streetlight?<br/>Overflowing bin?<br/>Say so, here.</h1>
+              <p>One form gets your report straight to the right department, with a photo, a location and a ticket you can follow from filed to fixed.</p>
+              <RouteStrip />
+            </div>
+            <div className="hero-side">
+              <div className="kicker">This week, so far</div>
+              <div className="stat-row">
+                <div className="stat"><div className="num">{reports.length}</div><div className="lbl">Issues reported</div></div>
+                <div className="stat"><div className="num">{resolvedCount}</div><div className="lbl">Marked resolved</div></div>
+                <div className="stat"><div className="num">{WARDS.length}</div><div className="lbl">Wards covered</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="sec-title"><h2>File a report</h2><div className="rule"></div></div>
+          <ReportForm onSubmit={handleSubmit} />
+        </>
+      )}
+
+      {tab === "mine" && (
+        <>
+          <div className="sec-title"><h2>My reports</h2><div className="rule"></div></div>
+          <MyReports reports={reports} />
+        </>
+      )}
+
+      {tab === "admin" && (
+        <>
+          <div className="sec-title"><h2>Department dashboard</h2><div className="rule"></div></div>
+          <AdminDashboard reports={reports} onUpdateStatus={handleUpdateStatus} />
+        </>
+      )}
+
+      <div className="foot">CivicLine — a frontend concept for reporting and tracking local civic issues.</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
